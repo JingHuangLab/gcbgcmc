@@ -1,11 +1,11 @@
 # mygcbgcmc
-A C++ implemention of grid cavity bias GCMC interface with CHARMM.
+A C++ implemention of grid cavity bias GCMC interface with CHARMM. Note the CHARMM itself has a built-in GCMC module which is much faster and robust, this implementaion aims to carry out GCMC with Drude force field so that it can be more flexible and take the advantage of CHARMM's versatility.
 
 # Compilation
 **Prerequests**:   
-- **MersenneTwister.h**: a random number generator.  
+- **MersenneTwister.h**: a random number generator that can be found on github.  
 - a C++ compiler support **C++11** standard  
-- cmake version >= **3.17** (works fine, lower version may also work)
+- cmake ( version >= **3.17** works fine, lower version may also work)
 
 To compile the code:
 ```bash
