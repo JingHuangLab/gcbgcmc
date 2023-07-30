@@ -1,0 +1,176 @@
+* charmm input template for gcmc
+*
+ioformat noextended
+!jobtype:
+! 0 -> singpoint  read accept.crd and psf no write out
+! 1 -> displacement read try.crd write try.crd .and try.psf
+! 2 -> insertion read try.crd and write try. crd
+! 3 -> deletion read accept.crd and write out
+! 5 -> run md simulation 
+!--- Read parameters, psf and coordinates
+
+stream ./toppar_drude_master_protein_2019h.str
+
+
+set cutnb  16.0  ! cutnb
+set ctonnb 10.0  ! ctonnb
+set ctofnb 12.0  ! ctofnb
+set eatom atom
+set etrun switch
+set vatom vatom
+set vtrun vswitch
+
+! read the psf anyway
+OPEN UNIT 1 FORM READ NAME ./accept.psf
+READ PSF CARD UNIT 1
+CLOSe UNIT 1
+
+!single point
+if @jobtype .eq. 0 then
+  OPEN UNIT 1 CARD READ NAME ./accept.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1
+endif
+
+!delete the a water here
+IF @jobtype .eq. 3 THEN
+
+  OPEN UNIT 1 CARD READ NAME ./accept.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1
+  
+  bomlev -1
+  delete atom sele SELECMD end
+
+endif
+
+!insert
+if @jobtype .eq. 2 then
+  read sequence SWM4 1
+  generate NEW first none last none noangle nodihedral setup warn drude dmass 0.4 
+  
+  OPEN UNIT 1 CARD READ NAME ./try.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1
+  
+  join A NEW RENU
+  rename segid BULK sele segid NEW end
+endif
+
+!displacement
+if @jobtype .eq. 1 then
+  OPEN UNIT 1 CARD READ NAME ./try.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1 
+endif
+
+
+!run md
+if @jobtype .eq. 5 then
+  
+  OPEN UNIT 1 CARD READ NAME ./beforemd.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1 
+  
+  SHAKE bonh param nofast -
+      select  .not. type D*  end -
+      select  .not. type D*  end 
+
+endif !jobtype=5
+
+
+crystal define ORTH 20.0000 10.0000 10.0000 90.00 90.00 90.00
+crystal build noper 0
+IMAGE BYRES XCEN 0.0 YCEN 0.0 ZCEN 0.0 SELE resname SWM4 END
+
+
+! cutim set to be 1000 to ensure that images exist regardless of insertion point
+nbonds inbfrq 1 imgfrq 1 ctonnb 10 ctofnb 12 cutnb 16  -
+       ewald pmewald kappa 0.34 fftx 24 ffty 24 fftz 10 order 6 lrc -
+       elec switch atoms cdie eps 1.0 vdw vswitch vatom imall
+
+if @jobtype .eq. 5 then
+  
+  open write unit 52 file name ./md.dcd
+!
+
+  set nstep = 500
+  set temp = 298.15
+  
+  drudehardwall l_wall 0.25
+  
+  ! Set up temperature control for the NPT simulation
+  bomlev -1
+    TPCONTROL NTHER 2  CMDAMP 10.0  NSTEP 20  -
+      THER 1 TAU  0.1   TREF @temp  SELECT .NOT. TYPE D* END  -
+      THER 2 TAU  0.005 TREF 1.00   SELECT TYPE D* END 
+  
+  DYNA vv2 start nstep @nstep timestep 0.001 -
+       ntrfrq 100 iprfrq -1 nprint 100  -
+       iasvel -1 firstt @temp finalt @temp -
+       ihbfrq 0 ilbfrq 0  -
+       iunread -1 iunwrite -1 iuncrd 52 iunvel -1 kunit -1 -
+       nsavc 100 nsavv -1
+  
+!endif !jobtype=5
+
+
+  energy
+  
+  open write unit 11 card name energy.dat
+    
+write title unit 11
+*?ener
+*
+    
+    close unit 11
+  
+  !write out the crd and psf for update universe
+  OPEN UNIT 1 WRITE CARD NAME try.crd
+  WRITE COOR CARD UNIT 1
+  close unit 1
+  
+  open unit 1 write card name try.psf
+  write psf card unit 1
+  close unit 1
+
+
+  stop
+endif !jobtype=5
+
+SHAKE bonh param nofast -
+      select  .not. type D*  end -
+      select  .not. type D*  end 
+
+
+cons harm force 9999999 sele .not. type D* end
+!cons fix sele .not. type D* end
+mini SD nstep 5 nprint 5
+mini ABNR nstep 5 nprint 10
+cons harm force 0.0 sele .not. type D* end
+!cons fix sele none end
+
+energy
+
+!mini SD nstep 20 nprint 5
+!mini ABNR nstep 20 nprint 5
+
+open write unit 11 card name energy.dat
+
+write title unit 11
+*?ener
+*
+
+close unit 11
+
+!write out the crd and psf for update universe
+OPEN UNIT 1 WRITE CARD NAME try.crd
+WRITE COOR CARD UNIT 1
+close unit 1
+
+open unit 1 write card name try.psf
+write psf card unit 1
+close unit 1
+
+
+stop
