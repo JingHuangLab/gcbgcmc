@@ -1,0 +1,131 @@
+* charmm input template for gcmc
+*
+
+!jobtype:
+! 0 -> singpoint  read accept.crd and psf no write out
+! 1 -> displacement read try.crd write try.crd .and try.psf
+! 2 -> insertion read try.crd and write try. crd
+! 3 -> deletion read accept.crd and write out
+! 5 -> run md simulation 
+!--- Read parameters, psf and coordinates
+
+stream ./toppar_water.str
+
+set cutnb  16.0  ! cutnb
+set ctonnb 10.0  ! ctonnb
+set ctofnb 12.0  ! ctofnb
+set eatom atom
+set etrun switch
+set vatom vatom
+set vtrun vswitch
+
+! read the psf anyway
+OPEN UNIT 1 FORM READ NAME ./accept.psf
+READ PSF CARD UNIT 1
+CLOSe UNIT 1
+
+!single point
+if @jobtype .eq. 0 then
+  OPEN UNIT 1 CARD READ NAME ./accept.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1
+endif
+
+!delete the a water here
+IF @jobtype .EQ. 3 THEN
+
+  OPEN UNIT 1 CARD READ NAME ./accept.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1
+  
+  bomlev -1
+  delete atom sele SELECMD end
+ 
+endif
+!insert
+if @jobtype .eq. 2 then
+  read sequence TIP3 1
+  generate NEW first none last none noangle nodihedral 
+  
+  OPEN UNIT 1 CARD READ NAME ./try.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1 
+
+  join A NEW RENU
+  rename segid A sele segid NEW end
+ENDIF
+
+!displacement
+if @jobtype .eq. 1 then
+  OPEN UNIT 1 CARD READ NAME ./try.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1 
+endif
+
+!run md
+if @jobtype .eq. 5 then
+  
+  OPEN UNIT 1 CARD READ NAME ./beforemd.crd
+  READ COOR CARD UNIT 1 
+  CLOSe UNIT 1 
+  
+  shake bonh - 
+    select resname TIP3 end - 
+    nofast
+
+ENDIF
+
+
+crystal define ORTH 20.0000 10.0000 10.0000 90.00 90.00 90.00
+crystal build noper 0
+IMAGE BYRES XCEN 0.0 YCEN 0.0 ZCEN 0.0 SELE ALL END
+
+
+! cutim set to be 1000 to ensure that images exist regardless of insertion point
+nbonds inbfrq 1 imgfrq 1 ctonnb 10 ctofnb 12 cutnb 16 cutim 999  -
+       ewald pmewald kappa 0.34 fftx 24 ffty 24 fftz 24 order 6 lrc -
+       elec switch atoms cdie eps 1.0 vdw vswitch vatom imall
+
+if @jobtype .eq. 5 then
+  
+open write unit 52 file name ./md.dcd
+!
+set nstep = 500
+set temp = 298.15
+
+DYNA VVER start timestep 0.002 nstep @nstep -
+     nprint 100 iprfrq 100 ntrfrq 100 -
+     iunread -1 iunwri -1 iuncrd 52 iunvel -1 kunit -1 -
+     nsavc 100 nsavv 0 - 
+     nose rstn tref @temp qref 50 ncyc 10 firstt @temp
+
+endif
+
+
+update
+energy
+
+open write unit 11 card name energy.dat
+
+write title unit 11
+*?ener
+*
+
+close unit 11
+
+if @jobtype .eq. 0  then
+stop
+endif
+
+
+!write out the crd and psf for updating system
+OPEN UNIT 1 WRITE CARD NAME try.crd
+WRITE COOR CARD UNIT 1
+close unit 1
+
+open unit 1 write card name try.psf
+write psf card unit 1
+close unit 1
+
+
+stop
