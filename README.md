@@ -1,4 +1,4 @@
-# mygcbgcmc
+# gcbgcmc
 A C++ implementation of grid cavity bias GCMC interface with CHARMM. Note the CHARMM itself has a built-in GCMC module which is much faster and more robust. This implementation aims to carry out GCMC with the Drude force field so that it can be more flexible and take advantage of CHARMM's versatility. To use this program, by default, it is thought you are familiar with CHARMM.
 
 # Compilation
