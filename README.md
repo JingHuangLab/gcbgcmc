@@ -1,5 +1,5 @@
 # gcbgcmc
-A C++ implementation of grid cavity bias GCMC interface with CHARMM. Note the CHARMM itself has a built-in GCMC module which is much faster and more robust. This implementation aims to carry out GCMC with the Drude force field so that it can be more flexible and take advantage of CHARMM's versatility. To use this program, by default, it is thought you are familiar with CHARMM.
+This repo contains the source code and examples for gcbgcmc (grid cavity bias GCMC): A C++ implementation of grid cavity bias GCMC interface with CHARMM. Note the CHARMM itself has a built-in GCMC module which is much faster and more robust. This implementation aims to carry out GCMC with the Drude force field so that it can be more flexible and take advantage of CHARMM's versatility. To use this program, by default, it is thought you are familiar with CHARMM.
 
 # Compilation
 **Prerequisites**:   
@@ -14,11 +14,11 @@ cd build
 cmake ../src -DCMAKE_BUILD_TYPE=Release
 cmake --build .
 ```
-The executable binary file **mygcbgcmc.exe** will be generated.
+The executable binary file **gcbgcmc.exe** will be generated.
 # Usage
-To use mygcbgcmc, the molecular dynamics (MD) engine CHARMM need to be properly installed, so that mygcbgcmc can call CHARMM to calculate energy, force and propagate MD simulations.
+To use gcbgcmc, the molecular dynamics (MD) engine CHARMM need to be properly installed, so that gcbgcmc can call CHARMM to calculate energy, force and propagate MD simulations.
 To run the GCMC tasks, you need to prepare X files:
- - input file for mygcbgcmc (control the GCMC job, e.g. steps, GCMC region...)
+ - input file for gcbgcmc (control the GCMC job, e.g. steps, GCMC region...)
  - input template for CHARMM (control how force and energy are calculated and how MD are carried out)
  - CHARMM coordinate file (define the system coordinate)
  - CHARMM psf file (define the system topology)
